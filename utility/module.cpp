@@ -172,6 +172,41 @@ void displaySysVersion()
     }
 }
 
+#define METHOD_SYS_SET_TIME 0xA100
+#define METHOD_SYS_GET_TIME 0xA200
+moduleResult_t sysSetTime(uint32_t clock){
+	#define SYS_SET_TIME_PAYLOAD_LEN 0x0B
+    zmBuf[0] = SYS_SET_TIME_PAYLOAD_LEN;
+    zmBuf[1] = MSB(SYS_SET_TIME);
+    zmBuf[2] = LSB(SYS_SET_TIME);
+	/* UTCTime – 4 bytes – Number of seconds since 00:00:00 on January 1, 2000 */
+	zmBuf[3] = LSB(clock);
+    zmBuf[4] = (clock & 0xFF00) >> 8;
+    zmBuf[5] = (clock & 0xFF0000) >> 16;
+    zmBuf[6] = clock >> 24;
+	
+	zmBuf[7] = 0;	//Hour
+	zmBuf[8] = 0;	//Minute
+	zmBuf[9] = 0;	//Second
+	zmBuf[10] = 0;	//Month
+	zmBuf[11] = 0;	//Day
+	zmBuf[12] = 0;	//Year - Century
+	zmBuf[13] = 0;	//Year - Year
+	
+    RETURN_RESULT(sendMessage(), METHOD_SYS_SET_TIME); 
+}
+
+
+
+moduleResult_t sysGetTime(){
+	#define SYS_GET_TIME_PAYLOAD_LEN 0
+    zmBuf[0] = SYS_GET_TIME_PAYLOAD_LEN;
+    zmBuf[1] = MSB(SYS_GET_TIME);
+    zmBuf[2] = LSB(SYS_GET_TIME);
+	
+    RETURN_RESULT(sendMessage(), METHOD_SYS_GET_TIME); 
+}
+
 #define METHOD_SYS_RANDOM	0x0300
 /** 
 Retrieves a random number from the Module using SYS_RANDOM command. The Module has a hardware random
@@ -515,7 +550,7 @@ moduleResult_t setStartupOptions(uint8_t option)
         printf("STARTOPT_CLEAR_CONFIG ");
     if (option & STARTOPT_CLEAR_STATE)
         printf("STARTOPT_CLEAR_STATE ");   
-    printf("\r\n");
+    Serial.println();
 #endif
     uint8_t data[1];
     data[0] = option;
@@ -677,7 +712,7 @@ these settings. Use displayDeviceInformation() to see current values used.
 moduleResult_t displayNetworkConfigurationParameters()
 {
     moduleResult_t result = MODULE_SUCCESS;
-    printf("Module Configuration Parameters\r\n");
+    Serial.println("Module Configuration Parameters");
     
     result = getConfigurationParameter(ZCD_NV_PANID);
     if (result != MODULE_SUCCESS) return result;
@@ -755,7 +790,7 @@ the Parent MAC Address and channel will be 0, and the Extended PAN ID will be th
 moduleResult_t displayDeviceInformation()
 {
     int i;
-    printf("Device Information Properties (MSB first)\r\n");
+    Serial.println("Device Information Properties (MSB first)");
     moduleResult_t result = MODULE_SUCCESS;
     
     result = zbGetDeviceInfo(DIP_STATE);
@@ -797,7 +832,7 @@ moduleResult_t displayDeviceInformation()
     printf("    Extended PAN ID:            ");
     for (i = SRSP_DIP_VALUE_FIELD+7; i>=SRSP_DIP_VALUE_FIELD; i--)
         printf("%02X ", zmBuf[i]);
-    printf("\r\n");
+    Serial.println();
     
     return MODULE_SUCCESS;
 }

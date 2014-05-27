@@ -48,6 +48,10 @@
 #define SYS_GPIO                        0x210E
 #define SYS_VERSION                     0x2102
 #define SYS_RANDOM                      0x210C
+
+#define SYS_SET_TIME					0x2110
+#define SYS_GET_TIME					0x2111
+
 #define SYS_NV_READ                     0x2108
 #define SYS_NV_WRITE                    0x2109
 #define SYS_RESET_IND                   0x4180

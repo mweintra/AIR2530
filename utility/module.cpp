@@ -802,7 +802,7 @@ moduleResult_t displayDeviceInformation()
     if (result != MODULE_SUCCESS) return result;
     for (i = SRSP_DIP_VALUE_FIELD+7; i>=SRSP_DIP_VALUE_FIELD; i--)
         printf("%02X ", zmBuf[i]);
-    printf("\r\n");
+    Serial.println();
     
     result = zbGetDeviceInfo(DIP_SHORT_ADDRESS);
     if (result != MODULE_SUCCESS) return result;
@@ -817,7 +817,7 @@ moduleResult_t displayDeviceInformation()
     printf("    Parent MAC Address:         ");
     for (i = SRSP_DIP_VALUE_FIELD+7; i>=SRSP_DIP_VALUE_FIELD; i--)
         printf("%02X ", zmBuf[i]);
-    printf("\r\n");
+    Serial.println();
     
     result = zbGetDeviceInfo(DIP_CHANNEL);
     if (result != MODULE_SUCCESS) return result;

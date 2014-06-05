@@ -18,8 +18,12 @@
 #define SOURCE_LQI_HEADER		0x08
 #define SOURCE_LATENCY_HEADER	0x10
 #define DEVICE_TYPE_HEADER		0x20
-#define OFFSET_TIME_HEADER		0x40
-#define RESPONSE_BIT_HEADER		0x80
+
+
+// Basic sensor-gateway messaging schemes
+#define FORWARDED_MESSAGE			0x40
+#define TIME_SYNC_MESSAGE 			0x80
+
 
 #define SOURCE_TIME_LENGTH		4
 #define	SOURCE_MAC_LENGTH		8
@@ -45,6 +49,7 @@ private:
 	uint8_t messageReceivedHeader;
 	uint32_t messageReceivedTime;
 	
+	uint8_t incomingMessageLQI;
 	uint32_t incomingMessageTime;
 	uint8_t mac[8];
 	uint8_t parent[8];
@@ -107,6 +112,7 @@ public:
 
 	//read message parameters
 	uint8_t getLQI();
+	uint8_t getSourceLQI();
 	uint8_t getLength();
 	uint16_t getSource();
   
@@ -120,8 +126,13 @@ public:
 	uint32_t getTime();
 	void printTime();
   
+	//void NVwrite(uint8_t address, uint8_t data);
+	//uint8_t NVread(uint8_address);
+  
   
   	void reset();
+  
+  
   
 	void displayNetworkInfo();
 	void displayDeviceInfo();

@@ -24,9 +24,9 @@ uint16_t operatingRegion=0;
 //moduleResult_t result = MODULE_SUCCESS;
 ZigBeeClass::ZigBeeClass(){
 	#ifdef __MSP430_HAS_EUSCI_B0__
-		MRSTpin=P3_0;
-		MRDYpin=P3_1;
-		SRDYpin=P3_2;
+		//MRSTpin=P3_0;
+		//MRDYpin=P3_1;
+		//SRDYpin=P3_2;
 	#endif
 	#if defined(__LM4F120H5QR__) || defined(__TM4C123GH6PM____) || defined(__TM4C1294NCPDT__) || defined(__TM4C129XNCZAD__) 
 		MRSTpin=PE_0;
@@ -35,7 +35,7 @@ ZigBeeClass::ZigBeeClass(){
 		SPImodule=2;
 	#endif
 	networkOnline=false;
-	messageHeader = (SOURCE_TIME_HEADER | SOURCE_MAC_HEADER | SOURCE_LQI_HEADER | SOURCE_LATENCY_HEADER | DEVICE_TYPE_HEADER);
+	messageHeader = (SOURCE_TIME_HEADER | SOURCE_MAC_HEADER | SOURCE_LATENCY_HEADER | DEVICE_TYPE_HEADER);
 	messageBufferIndex=0;
 	messageBufferIndex=getHeaderLength(messageHeader);
 }
@@ -70,7 +70,7 @@ void ZigBeeClass::addHeaders(){
 	addByte(messageHeader);
 	if (messageHeader & SOURCE_TIME_HEADER){
 		uint32_t thisTime=getTime();
-		if ( !(messageHeader & RESPONSE_BIT_HEADER) ){
+		if ( !(messageHeader & TIME_SYNC_MESSAGE) ){
 			addByte(zmBuf[SYS_TIME_UTC_FIELD]);
 			addByte(zmBuf[SYS_TIME_UTC_FIELD+1]);
 			addByte(zmBuf[SYS_TIME_UTC_FIELD+2]);
@@ -94,7 +94,10 @@ void ZigBeeClass::addHeaders(){
 			addByte(zmBuf[i]);		
 	}
 	if (messageHeader & SOURCE_LQI_HEADER){
-		addByte(getLQI());
+		if(messageHeader & FORWARDED_MESSAGE)
+			addByte(getSourceLQI());
+		else
+			addByte(getLQI());
 	}
 	if (messageHeader & SOURCE_LATENCY_HEADER){
 		addByte(duration);
@@ -236,13 +239,12 @@ bool ZigBeeClass::hasMessage(){
 	if(moduleHasMessageWaiting()){
 		uint32_t thisTime=getTime();
 		getMessage();
-		messageReceivedSource=getSource();
 		//THIS IS WHERE THE HEADER FIELD IS
 		if (zmBuf[SRSP_LENGTH_FIELD] > 0)
 		{
 			// Load the ZM parameters
 			message_type=(CONVERT_TO_INT(zmBuf[SRSP_CMD_LSB_FIELD], zmBuf[SRSP_CMD_MSB_FIELD]));
-			messageReceivedLQI=zmBuf[AF_INCOMING_MESSAGE_LQI_FIELD];
+			incomingMessageLQI=zmBuf[AF_INCOMING_MESSAGE_LQI_FIELD];
 			messageReceivedLength=zmBuf[AF_INCOMING_MESSAGE_PAYLOAD_LEN_FIELD];
 			messageReceivedSource=AF_INCOMING_MESSAGE_SHORT_ADDRESS();
 			
@@ -274,7 +276,7 @@ bool ZigBeeClass::hasMessage(){
 					parent[i]=zmBuf[bufferCounter++];
 			}
 			if (messageReceivedHeader & SOURCE_LQI_HEADER){
-				bufferCounter++;
+				messageReceivedLQI=zmBuf[bufferCounter++];
 			}
 			if (messageReceivedHeader & SOURCE_LATENCY_HEADER){
 				messageReceivedLatency=zmBuf[bufferCounter++];
@@ -290,7 +292,7 @@ bool ZigBeeClass::hasMessage(){
 
 			// Synchronize time with parent node
 			if(messageReceivedHeader & SOURCE_TIME_HEADER){
-				if(messageReceivedHeader & RESPONSE_BIT_HEADER){
+				if(messageReceivedHeader & TIME_SYNC_MESSAGE){
 					long int nowTime=getTime();
 					nowTime+= (long int) messageReceivedTime;
 										Serial.println("Time Sync");
@@ -298,21 +300,21 @@ bool ZigBeeClass::hasMessage(){
 										Serial.println(nowTime);
 					setTime(nowTime);
 				}else{
-					if(thisTime!=messageReceivedTime){
+					if(moduleConfiguration.deviceType!= END_DEVICE && thisTime!=messageReceivedTime){
 						printf("Time syncing child: %04x, difference: ",messageReceivedSource);
 						Serial.println((long int)thisTime-(long int)messageReceivedTime);
 						Serial.println(thisTime);
 						Serial.println(messageReceivedTime);
 						messageBufferIndex=getHeaderLength(messageHeader);
-						messageHeader |= RESPONSE_BIT_HEADER;
+						messageHeader |= TIME_SYNC_MESSAGE;
 						if(send(messageReceivedSource)!=MODULE_SUCCESS){
 							Serial.print("Transmission Failed!");
 						}
-						messageHeader &= ~RESPONSE_BIT_HEADER;
+						messageHeader &= ~TIME_SYNC_MESSAGE;
 					}
 				}
 			}
-		messageBufferIndex=getHeaderLength(messageReceivedHeader);			
+		messageBufferIndex=getHeaderLength(messageReceivedHeader);	
 		}
 		return true;
 	}
@@ -367,7 +369,7 @@ uint16_t ZigBeeClass::getKVP(uint16_t key){
 	}
 }
 uint8_t ZigBeeClass::getLQI(){
-	return messageReceivedLQI;
+	return incomingMessageLQI;
 }
 uint8_t ZigBeeClass::getLength(){
 	return messageReceivedLength;
@@ -375,6 +377,10 @@ uint8_t ZigBeeClass::getLength(){
 uint16_t ZigBeeClass::getSource(){
 	return messageReceivedSource;
 }
+uint8_t ZigBeeClass::getSourceLQI(){
+	return messageReceivedLQI;
+}
+
 
 uint16_t ZigBeeClass::messageType(){
 	return message_type;

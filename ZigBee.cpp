@@ -24,20 +24,22 @@ uint16_t operatingRegion=0;
 //moduleResult_t result = MODULE_SUCCESS;
 ZigBeeClass::ZigBeeClass(){
 	#ifdef __MSP430_HAS_EUSCI_B0__
-		//MRSTpin=P3_0;
-		//MRDYpin=P3_1;
-		//SRDYpin=P3_2;
+		MRSTpin=P3_0;
+		MRDYpin=P3_1;
+		SRDYpin=P3_2;
 	#endif
-	#if defined(__LM4F120H5QR__) || defined(__TM4C123GH6PM____) || defined(__TM4C1294NCPDT__) || defined(__TM4C129XNCZAD__) 
+	#if defined(__LM4F120H5QR__) || defined(__TM4C123GH6PM____) 
 		MRSTpin=PE_0;
 		MRDYpin=PA_5;
 		SRDYpin=PA_7;
 		SPImodule=2;
 	#endif
-	networkOnline=false;
-	messageHeader = (SOURCE_TIME_HEADER | SOURCE_MAC_HEADER | SOURCE_LATENCY_HEADER | DEVICE_TYPE_HEADER);
-	messageBufferIndex=0;
-	messageBufferIndex=getHeaderLength(messageHeader);
+	#if defined(__TM4C1294NCPDT__) || defined(__TM4C129XNCZAD__) 
+		MRSTpin=PH_2;
+		MRDYpin=PC_7;
+		SRDYpin=PB_3;
+		SPImodule=2;	
+	#endif
 }
 
 /************************** ADD MESSAGE HEADERS ********************************/
@@ -66,7 +68,7 @@ uint8_t ZigBeeClass::getHeaderLength(uint8_t headers){
 void ZigBeeClass::addHeaders(){
 	uint8_t headerCount=0;
 	int i;
-	messageBufferIndex=0;
+	transmitBufferIndex=0;
 	addByte(messageHeader);
 	if (messageHeader & SOURCE_TIME_HEADER){
 		uint32_t thisTime=getTime();
@@ -156,6 +158,10 @@ void ZigBeeClass::begin() {
 	halInit();
     moduleInit();
 	moduleReset();
+	networkOnline=false;
+	messageHeader = (SOURCE_TIME_HEADER | SOURCE_MAC_HEADER | SOURCE_LATENCY_HEADER | DEVICE_TYPE_HEADER);
+	receiveBufferIndex=0;
+	transmitBufferIndex=getHeaderLength(messageHeader);	
 }
 moduleResult_t ZigBeeClass::start(uint8_t deviceType){
 		afSetAckMode(AF_MAC_ACK);
@@ -164,7 +170,7 @@ moduleResult_t ZigBeeClass::start(uint8_t deviceType){
 	else
 		afSetAckMode(AF_APS_ACK);
 		*/
-	messageBufferIndex=getHeaderLength(messageHeader);
+	transmitBufferIndex=getHeaderLength(messageHeader);
 	moduleConfiguration.deviceType=deviceType;
 	if ((result = startModule(&moduleConfiguration, GENERIC_APPLICATION_CONFIGURATION,operatingRegion)) != MODULE_SUCCESS)
     {
@@ -181,7 +187,7 @@ moduleResult_t ZigBeeClass::start(uint8_t deviceType){
 }
 moduleResult_t ZigBeeClass::send(uint16_t shortAddress){
 	uint32_t startTime;
-	uint8_t size=messageBufferIndex;
+	uint8_t size=transmitBufferIndex;
 	if(networkOnline){
 		addHeaders();
 		startTime=millis();
@@ -190,8 +196,8 @@ moduleResult_t ZigBeeClass::send(uint16_t shortAddress){
 				networkOnline=false;
 		}else{
 			duration=(uint8_t)(millis()-startTime);
-			messageBufferIndex=getHeaderLength(messageHeader);
 		}
+		transmitBufferIndex=getHeaderLength(messageHeader);
 	}
 	return result;
 }
@@ -204,8 +210,8 @@ moduleResult_t ZigBeeClass::send(uint16_t shortAddress, char* message,uint16_t m
 			networkOnline=false;
 		}else{
 			duration=(uint8_t)(millis()-startTime);
-			messageBufferIndex=getHeaderLength(messageHeader);
 		}
+		transmitBufferIndex=getHeaderLength(messageHeader);
 	}
 	return result;
 }
@@ -235,7 +241,7 @@ void ZigBeeClass::setSecurityKeys(char* securityKey){
 		moduleConfiguration.securityKey=(uint8_t *)securityKey;
 }
 
-bool ZigBeeClass::hasMessage(){
+bool ZigBeeClass::checkMessage(){
 	if(moduleHasMessageWaiting()){
 		uint32_t thisTime=getTime();
 		getMessage();
@@ -249,7 +255,6 @@ bool ZigBeeClass::hasMessage(){
 			messageReceivedSource=AF_INCOMING_MESSAGE_SHORT_ADDRESS();
 			
 			// Load the Message Headers
-			messageBufferIndex=0;
 			uint16_t bufferCounter=AF_INCOMING_MESSAGE_PAYLOAD_START_FIELD;
 			messageReceivedHeader=zmBuf[bufferCounter++];
 			if(messageReceivedHeader & SOURCE_TIME_HEADER){
@@ -295,26 +300,27 @@ bool ZigBeeClass::hasMessage(){
 				if(messageReceivedHeader & TIME_SYNC_MESSAGE){
 					long int nowTime=getTime();
 					nowTime+= (long int) messageReceivedTime;
-										Serial.println("Time Sync");
-										Serial.println(messageReceivedTime);
-										Serial.println(nowTime);
+					Serial.println("Time Sync");
+					Serial.println(messageReceivedTime);
+					Serial.println(nowTime);
 					setTime(nowTime);
-				}else{
-					if(moduleConfiguration.deviceType!= END_DEVICE && thisTime!=messageReceivedTime){
-						printf("Time syncing child: %04x, difference: ",messageReceivedSource);
+				}
+				if(moduleConfiguration.deviceType!= END_DEVICE && thisTime!=messageReceivedTime){
+					printf("Time syncing child: %04x, difference: ",messageReceivedSource);
 						Serial.println((long int)thisTime-(long int)messageReceivedTime);
 						Serial.println(thisTime);
 						Serial.println(messageReceivedTime);
-						messageBufferIndex=getHeaderLength(messageHeader);
-						messageHeader |= TIME_SYNC_MESSAGE;
-						if(send(messageReceivedSource)!=MODULE_SUCCESS){
-							Serial.print("Transmission Failed!");
-						}
-						messageHeader &= ~TIME_SYNC_MESSAGE;
+					receiveBufferIndex=getHeaderLength(messageHeader);
+					messageHeader += TIME_SYNC_MESSAGE;
+					if(send(messageReceivedSource)!=MODULE_SUCCESS){
+						Serial.print("Transmission Failed!");
 					}
+					messageHeader -= TIME_SYNC_MESSAGE;
 				}
+				
 			}
-		messageBufferIndex=getHeaderLength(messageReceivedHeader);	
+		receiveBufferIndex=getHeaderLength(messageReceivedHeader);	
+		transmitBufferIndex=getHeaderLength(messageHeader);	
 		}
 		return true;
 	}
@@ -337,28 +343,28 @@ void ZigBeeClass::printMessage(){
 
 /************** ADD VALUES TO MESSAGE BUFFER *********************************/
 void ZigBeeClass::addByte(uint8_t data){
-	messageBuffer[messageBufferIndex++]=data;
+	messageBuffer[transmitBufferIndex++]=data;
 }
 void ZigBeeClass::addValue(uint16_t data){
-	messageBuffer[messageBufferIndex]=MSB(data);
-	messageBuffer[messageBufferIndex+1]=LSB(data);
-	messageBufferIndex+=2;
+	messageBuffer[transmitBufferIndex]=MSB(data);
+	messageBuffer[transmitBufferIndex+1]=LSB(data);
+	transmitBufferIndex+=2;
 }
 void ZigBeeClass::addKVP(uint16_t key, uint16_t value){
-	messageBuffer[messageBufferIndex]=MSB(key);
-	messageBuffer[messageBufferIndex+1]=LSB(key);
-	messageBuffer[messageBufferIndex+2]=MSB(value);
-	messageBuffer[messageBufferIndex+3]=LSB(value);	
-	messageBufferIndex+=4;
+	messageBuffer[transmitBufferIndex]=MSB(key);
+	messageBuffer[transmitBufferIndex+1]=LSB(key);
+	messageBuffer[transmitBufferIndex+2]=MSB(value);
+	messageBuffer[transmitBufferIndex+3]=LSB(value);	
+	transmitBufferIndex+=4;
 }
 
 /*************** GET VALUES FROM MESSAGE BUFFER ******************************/
 uint8_t ZigBeeClass::getByte(){
-	return messageBuffer[messageBufferIndex++];
+	return messageBuffer[receiveBufferIndex++];
 }
 uint16_t ZigBeeClass::getValue(){
-	messageBufferIndex+=2;
-	return (CONVERT_TO_INT(messageBuffer[messageBufferIndex+1],messageBuffer[messageBufferIndex]));
+	receiveBufferIndex+=2;
+	return (CONVERT_TO_INT(messageBuffer[receiveBufferIndex+1],messageBuffer[receiveBufferIndex]));
 
 }
 uint16_t ZigBeeClass::getKVP(uint16_t key){

@@ -39,9 +39,10 @@ class ZigBeeClass {
 private:
 	bool networkOnline;
 	uint8_t messageBuffer[MAX_DATA_SIZE];
-	uint8_t messageBufferIndex;
-	uint8_t messageHeader;
-	uint16_t message_type;
+	uint8_t transmitBufferIndex;
+	uint8_t receiveBufferIndex;
+
+	uint16_t message_type;
 	uint8_t getHeaderLength(uint8_t headers);
 	uint8_t duration;
 
@@ -66,7 +67,8 @@ private:
 	
 	
 public:
-
+	uint8_t messageHeader;
+	//	uint8_t receiveBufferIndex;
   ZigBeeClass();
 	// set up pin & SPI configurations
 	void setMRSTpin(uint8_t pin);
@@ -104,7 +106,7 @@ public:
 
 	uint16_t getValue();
 	uint16_t getKVP(uint16_t key);  
-	bool hasMessage();
+	bool checkMessage();
 	uint16_t messageType();
 	void printMessage();
 	void printHeaders();

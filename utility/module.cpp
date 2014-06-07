@@ -72,15 +72,11 @@ restart the Module's internal state machine and apply changes to startup options
 */
 moduleResult_t moduleReset()
 {
-
-
     RADIO_OFF();
     delayMs(1);
     RADIO_ON(); 
 #define MODULE_RESET_INITIAL_DELAY_MS   400
     delayMs(MODULE_RESET_INITIAL_DELAY_MS);                        //Necessary to allow proper module startup
-    
-
 
 #define TEST_SRDY_INTERVAL_MS           10        // check SRDY every 10 mSec
 #define TEST_SRDY_TIMEOUT_MS            2000      // ...and timeout after 1500mSec

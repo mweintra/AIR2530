@@ -87,7 +87,13 @@ void halSpiInitModule()
 	SPI.begin();
 #endif
 	SPI.setDataMode(SPI_MODE0);
-	SPI.setClockDivider(SPI_CLOCK_DIV8); //1 MHz SPI Clock  
+	
+#if defined(__TM4C1294NCPDT__) || defined(__TM4C129XNCZAD__) 
+	SPI.setClockDivider(SPI_CLOCK_DIV2); //1 MHz SPI Clock  
+#else
+	SPI.setClockDivider(SPI_CLOCK_DIV16); //1 MHz SPI Clock  
+#endif
+
 	
 
     // Don't select the module

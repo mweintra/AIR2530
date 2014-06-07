@@ -8,8 +8,8 @@
 #define RANDOM_VALUE		0x0005
 #define LIGHT_VALUE			0x0006	
 #define CARBON_VALUE		0x0007		
-#define AVERAGE_READING		0x1000
-#define MAX_READING			0x2000
-#define MIN_READING			0x3000
+#define AVERAGE_VALUE			0x1000
+#define MAX_VALUE			0x2000
+#define MIN_VALUE			0x3000
 
 #endif

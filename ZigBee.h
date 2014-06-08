@@ -117,13 +117,13 @@ public:
 	uint8_t getSourceLQI();
 	uint8_t getLength();
 	uint16_t getSource();
-  
+	uint32_t sourceMac();
 	int getRandom();
 
 	void getMac();
 	
 	uint8_t getDuration();
-		
+	uint32_t messageSourceTime();
 	moduleResult_t setTime(uint32_t clock);
 	uint32_t getTime();
 	void printTime();

@@ -58,6 +58,7 @@ private:
 	uint8_t messageReceivedLatency;
 	uint8_t messageReceivedDevice;
 	
+	bool timeSync;
 	
 	uint8_t messageReceivedLength;
 	
@@ -117,13 +118,16 @@ public:
 	uint8_t getSourceLQI();
 	uint8_t getLength();
 	uint16_t getSource();
-  
+	uint32_t sourceMac();
 	int getRandom();
 
 	void getMac();
 	
+	void enableTimeSync();
+	void disableTimeSync();
+	
 	uint8_t getDuration();
-		
+	uint32_t messageSourceTime();
 	moduleResult_t setTime(uint32_t clock);
 	uint32_t getTime();
 	void printTime();

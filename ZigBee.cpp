@@ -86,12 +86,12 @@ void ZigBeeClass::addHeaders(){
 		}
 	}
 	if (messageHeader &	SOURCE_MAC_HEADER){
-		zbGetDeviceInfo(DIP_PARENT_MAC_ADDRESS);
+		zbGetDeviceInfo(DIP_MAC_ADDRESS);
 		for (i = SRSP_DIP_VALUE_FIELD; i<=SRSP_DIP_VALUE_FIELD+7; i++)
 			addByte(zmBuf[i]);
 	}
 	if (messageHeader & PARENT_MAC_HEADER){
-		zbGetDeviceInfo(DIP_MAC_ADDRESS);
+		zbGetDeviceInfo(DIP_PARENT_MAC_ADDRESS);
 		for (i = SRSP_DIP_VALUE_FIELD; i<=SRSP_DIP_VALUE_FIELD+7; i++)
 			addByte(zmBuf[i]);		
 	}
@@ -131,6 +131,8 @@ void ZigBeeClass::printHeaders(){
 	if (messageReceivedHeader & DEVICE_TYPE_HEADER){
 		printf("Source Device Type: %02X\n\r",messageReceivedDevice);
 	}	
+	Serial.print("Message Time: ");
+	Serial.println(incomingMessageTime);
 	Serial.println();
 }
 
@@ -183,6 +185,7 @@ moduleResult_t ZigBeeClass::start(uint8_t deviceType){
 		Serial.println("Success!"); 
 		networkOnline=true;
 	}
+	
 	return result;
 }
 moduleResult_t ZigBeeClass::send(uint16_t shortAddress){
@@ -305,12 +308,12 @@ bool ZigBeeClass::checkMessage(){
 					Serial.println(nowTime);
 					setTime(nowTime);
 				}
-				if(moduleConfiguration.deviceType!= END_DEVICE && thisTime!=messageReceivedTime){
+				if(moduleConfiguration.deviceType!= END_DEVICE && thisTime!=messageReceivedTime && timeSync){
 					printf("Time syncing child: %04x, difference: ",messageReceivedSource);
 						Serial.println((long int)thisTime-(long int)messageReceivedTime);
 						Serial.println(thisTime);
 						Serial.println(messageReceivedTime);
-					receiveBufferIndex=getHeaderLength(messageHeader);
+					receiveBufferIndex=getHeaderLength(messageHeader)-2;
 					messageHeader += TIME_SYNC_MESSAGE;
 					if(send(messageReceivedSource)!=MODULE_SUCCESS){
 						Serial.print("Transmission Failed!");
@@ -319,7 +322,7 @@ bool ZigBeeClass::checkMessage(){
 				}
 				
 			}
-		receiveBufferIndex=getHeaderLength(messageReceivedHeader);	
+		receiveBufferIndex=getHeaderLength(messageReceivedHeader)-2;	
 		transmitBufferIndex=getHeaderLength(messageHeader);	
 		}
 		return true;
@@ -460,6 +463,18 @@ void ZigBeeClass::getMac(){
 
 }
 
+uint32_t ZigBeeClass::sourceMac(){
+	uint32_t val;
+	val=(uint32_t)mac[7];	
+	val+=(uint32_t)mac[6]*256;
+	val+=(uint32_t)mac[5]*65536;
+	val+=(uint32_t)mac[4]*16777216;
+	return val;
+}
+
+uint32_t ZigBeeClass::messageSourceTime(){
+	return messageReceivedTime;
+}
 
 
 uint8_t ZigBeeClass::getDuration(){
@@ -474,6 +489,13 @@ void ZigBeeClass::displayDeviceInfo(){
 	
 }
 
+void ZigBeeClass::enableTimeSync(){
+	timeSync=true;
+}
+
+void ZigBeeClass::disableTimeSync(){
+	timeSync=false;
+}
 
 
 

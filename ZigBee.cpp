@@ -471,22 +471,15 @@ uint32_t ZigBeeClass::sourceMac(){
 	val+=(uint32_t)mac[4]*16777216;
 	return val;
 }
-<<<<<<< HEAD
 
 uint32_t ZigBeeClass::messageSourceTime(){
 	return messageReceivedTime;
 }
-=======
->>>>>>> e791722830b55bed4814d786255b7b869974a898
 
-uint32_t ZigBeeClass::messageSourceTime(){
-	return messageReceivedTime;
-}
 
 uint8_t ZigBeeClass::getDuration(){
 	return duration;
 }
-
 
 void ZigBeeClass::displayNetworkInfo(){
 	

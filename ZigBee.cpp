@@ -40,6 +40,13 @@ ZigBeeClass::ZigBeeClass(){
 		SRDYpin=PB_3;
 		SPImodule=2;	
 	#endif
+	#if defined(TARGET_IS_CC3101) 
+		MRSTpin=18;
+		MRDYpin=8;
+		SRDYpin=10;
+	#endif
+	
+	
 }
 
 /************************** ADD MESSAGE HEADERS ********************************/
@@ -471,13 +478,6 @@ uint32_t ZigBeeClass::sourceMac(){
 	val+=(uint32_t)mac[4]*16777216;
 	return val;
 }
-<<<<<<< HEAD
-
-uint32_t ZigBeeClass::messageSourceTime(){
-	return messageReceivedTime;
-}
-=======
->>>>>>> e791722830b55bed4814d786255b7b869974a898
 
 uint32_t ZigBeeClass::messageSourceTime(){
 	return messageReceivedTime;
@@ -486,7 +486,6 @@ uint32_t ZigBeeClass::messageSourceTime(){
 uint8_t ZigBeeClass::getDuration(){
 	return duration;
 }
-
 
 void ZigBeeClass::displayNetworkInfo(){
 	

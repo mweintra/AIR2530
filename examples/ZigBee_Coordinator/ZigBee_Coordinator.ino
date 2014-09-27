@@ -18,6 +18,8 @@ void setup()
 
 void loop()
 {
+
+  ZigBee.getTime();
   if(ZigBee.checkMessage()){
     Serial.print("Message Received: ");
     Serial.println(ZigBee.getValue());
